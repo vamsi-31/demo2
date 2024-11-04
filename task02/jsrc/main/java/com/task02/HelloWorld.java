@@ -32,43 +32,47 @@ public class HelloWorld implements RequestHandler<APIGatewayProxyRequestEvent, A
 		Map<String, String> headers = new HashMap<>();
 		headers.put("Content-Type", "application/json");
 
-		// Handle null request with a 400 response instead of 500
+		// Ensure request is not null
 		if (request == null) {
-			return createResponse(400, "Bad request: Request object is null", headers);
+			return createErrorResponse("", "", headers);
 		}
 
-		// Get path and method, defaulting to empty string if null
+		// Get path and method, ensuring they're not null
 		String path = request.getPath() != null ? request.getPath() : "";
 		String httpMethod = request.getHttpMethod() != null ? request.getHttpMethod() : "";
 
-		// Log request details if context is available
+		// Log request details
 		if (context != null) {
 			context.getLogger().log("Request path: " + path);
 			context.getLogger().log("HTTP method: " + httpMethod);
 		}
 
-		// Route requests based on path and method
+		// Handle /hello endpoint
 		if ("/hello".equals(path) && "GET".equalsIgnoreCase(httpMethod)) {
-			return createResponse(200, "Hello from Lambda", headers);
-		} else if (path.startsWith("/cmtr-") && "GET".equalsIgnoreCase(httpMethod)) {
-			return createResponse(400, String.format(
-					"Bad request syntax or unsupported method. Request path: %s. HTTP method: %s",
-					path, httpMethod
-			), headers);
+			return createSuccessResponse(headers);
 		}
 
-		// Default case for unmatched routes
-		return createResponse(400, String.format(
-				"Bad request syntax or unsupported method. Request path: %s. HTTP method: %s",
-				path, httpMethod
-		), headers);
+		// Handle all other paths with 400 error
+		return createErrorResponse(path, httpMethod, headers);
 	}
 
-	private APIGatewayProxyResponseEvent createResponse(int statusCode, String message, Map<String, String> headers) {
+	private APIGatewayProxyResponseEvent createSuccessResponse(Map<String, String> headers) {
 		APIGatewayProxyResponseEvent response = new APIGatewayProxyResponseEvent();
+		response.setStatusCode(200);
 		response.setHeaders(headers);
-		response.setStatusCode(statusCode);
-		response.setBody(String.format("{\"statusCode\": %d, \"message\": \"%s\"}", statusCode, message));
+		response.setBody("{\"statusCode\": 200, \"message\": \"Hello from Lambda\"}");
+		return response;
+	}
+
+	private APIGatewayProxyResponseEvent createErrorResponse(String path, String httpMethod, Map<String, String> headers) {
+		APIGatewayProxyResponseEvent response = new APIGatewayProxyResponseEvent();
+		response.setStatusCode(400);
+		response.setHeaders(headers);
+		String errorMessage = String.format(
+				"{\"statusCode\": 400, \"message\": \"Bad request syntax or unsupported method. Request path: %s. HTTP method: %s\"}",
+				path, httpMethod
+		);
+		response.setBody(errorMessage);
 		return response;
 	}
 }
