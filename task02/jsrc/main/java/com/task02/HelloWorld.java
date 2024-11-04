@@ -28,48 +28,63 @@ public class HelloWorld implements RequestHandler<APIGatewayProxyRequestEvent, A
 
 	@Override
 	public APIGatewayProxyResponseEvent handleRequest(APIGatewayProxyRequestEvent request, Context context) {
-		if (context != null) {
-			context.getLogger().log("Request path: " + (request.getPath() != null ? request.getPath() : "null"));
-			context.getLogger().log("HTTP method: " + (request.getHttpMethod() != null ? request.getHttpMethod() : "null"));
-		}
-
+		// Initialize response objects
 		APIGatewayProxyResponseEvent response = new APIGatewayProxyResponseEvent();
 		Map<String, String> headers = new HashMap<>();
 		headers.put("Content-Type", "application/json");
 		response.setHeaders(headers);
 
+		// Handle null request
 		if (request == null) {
-			response.setStatusCode(500);
-			response.setBody("{\"statusCode\": 500, \"message\": \"Internal server error: null request\"}");
-			return response;
+			return createErrorResponse(500, "Internal server error: null request");
+		}
+
+		// Log request details if context is available
+		if (context != null) {
+			context.getLogger().log("Request path: " + (request.getPath() != null ? request.getPath() : "null"));
+			context.getLogger().log("HTTP method: " + (request.getHttpMethod() != null ? request.getHttpMethod() : "null"));
 		}
 
 		String path = request.getPath();
 		String httpMethod = request.getHttpMethod();
 
-
-		if (path != null && path.startsWith("/hello") && "GET".equalsIgnoreCase(httpMethod)) {
-			response.setStatusCode(200);
-			response.setBody("{\"statusCode\": 200, \"message\": \"Hello from Lambda\"}");
-		}
-
-		else if (path != null && path.startsWith("/cmtr-") && "GET".equalsIgnoreCase(httpMethod)) {
-			response.setStatusCode(400);
-			response.setBody(String.format(
-					"{\"statusCode\": 400, \"message\": \"Bad request syntax or unsupported method. Request path: %s. HTTP method: %s\"}",
-					path, httpMethod
-			));
-		}
-
-		else {
-			response.setStatusCode(400);
-			response.setBody(String.format(
-					"{\"statusCode\": 400, \"message\": \"Bad request syntax or unsupported method. Request path: %s. HTTP method: %s\"}",
+		// Validate required request parameters
+		if (httpMethod == null || path == null) {
+			return createErrorResponse(400, String.format(
+					"Bad request syntax or unsupported method. Request path: %s. HTTP method: %s",
 					path != null ? path : "null",
 					httpMethod != null ? httpMethod : "null"
 			));
 		}
 
+		// Route requests based on path and method
+		if (path.equals("/hello") && httpMethod.equalsIgnoreCase("GET")) {
+			return createResponse(200, "Hello from Lambda");
+		} else if (path.startsWith("/cmtr-") && httpMethod.equalsIgnoreCase("GET")) {
+			return createErrorResponse(400, String.format(
+					"Bad request syntax or unsupported method. Request path: %s. HTTP method: %s",
+					path, httpMethod
+			));
+		}
+
+		// Default case for unmatched routes
+		return createErrorResponse(400, String.format(
+				"Bad request syntax or unsupported method. Request path: %s. HTTP method: %s",
+				path, httpMethod
+		));
+	}
+
+	private APIGatewayProxyResponseEvent createResponse(int statusCode, String message) {
+		APIGatewayProxyResponseEvent response = new APIGatewayProxyResponseEvent();
+		Map<String, String> headers = new HashMap<>();
+		headers.put("Content-Type", "application/json");
+		response.setHeaders(headers);
+		response.setStatusCode(statusCode);
+		response.setBody(String.format("{\"statusCode\": %d, \"message\": \"%s\"}", statusCode, message));
 		return response;
+	}
+
+	private APIGatewayProxyResponseEvent createErrorResponse(int statusCode, String message) {
+		return createResponse(statusCode, message);
 	}
 }
