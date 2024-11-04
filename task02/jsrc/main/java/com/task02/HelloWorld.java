@@ -26,43 +26,39 @@ import java.util.Map;
 )
 public class HelloWorld implements RequestHandler<APIGatewayProxyRequestEvent, APIGatewayProxyResponseEvent> {
 
-	private static final String SUCCESS_RESPONSE = "{\"statusCode\": 200, \"message\": \"Hello from Lambda\"}";
-	private static final String ERROR_RESPONSE_TEMPLATE =
-			"{\"statusCode\": 400, \"message\": \"Bad request syntax or unsupported method. Request path: %s. HTTP method: %s\"}";
-
 	@Override
 	public APIGatewayProxyResponseEvent handleRequest(APIGatewayProxyRequestEvent request, Context context) {
+		// Create common headers
 		Map<String, String> headers = new HashMap<>();
 		headers.put("Content-Type", "application/json");
-
-		if (request == null) {
-			return createResponse(400, headers, String.format(ERROR_RESPONSE_TEMPLATE, "", ""));
-		}
+		headers.put("Access-Control-Allow-Origin", "*");
 
 		String path = request.getPath();
-		if (path == null) {
-			path = "";
-		}
-
 		String httpMethod = request.getHttpMethod();
-		if (httpMethod == null) {
-			httpMethod = "";
+
+		// Check if the request is for /hello endpoint with GET method
+		if ("/hello".equals(path) && "GET".equalsIgnoreCase(httpMethod)) {
+			// Return successful response for /hello GET request
+			String successBody = "{\"statusCode\": 200, \"message\": \"Hello from Lambda\"}";
+			return new APIGatewayProxyResponseEvent()
+					.withStatusCode(200)
+					.withHeaders(headers)
+					.withBody(successBody);
+		} else {
+			// Return 400 Bad Request for any other endpoint or method
+			String errorMessage = String.format(
+					"Bad request syntax or unsupported method. Request path: %s. HTTP method: %s",
+					path,
+					httpMethod
+			);
+			String errorBody = String.format(
+					"{\"statusCode\": 400, \"message\": \"%s\"}",
+					errorMessage
+			);
+			return new APIGatewayProxyResponseEvent()
+					.withStatusCode(400)
+					.withHeaders(headers)
+					.withBody(errorBody);
 		}
-
-		// Handle /hello and subpaths like /hello/world
-		if (path.startsWith("/hello") && "GET".equalsIgnoreCase(httpMethod)) {
-			return createResponse(200, headers, SUCCESS_RESPONSE);
-		}
-
-		// For all other cases, return 400 Bad Request
-		return createResponse(400, headers, String.format(ERROR_RESPONSE_TEMPLATE, path, httpMethod));
-	}
-
-	private APIGatewayProxyResponseEvent createResponse(int statusCode, Map<String, String> headers, String body) {
-		APIGatewayProxyResponseEvent response = new APIGatewayProxyResponseEvent();
-		response.setStatusCode(statusCode);
-		response.setHeaders(headers);
-		response.setBody(body);
-		return response;
 	}
 }
