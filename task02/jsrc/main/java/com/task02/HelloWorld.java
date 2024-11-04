@@ -28,24 +28,46 @@ public class HelloWorld implements RequestHandler<APIGatewayProxyRequestEvent, A
 
 	@Override
 	public APIGatewayProxyResponseEvent handleRequest(APIGatewayProxyRequestEvent request, Context context) {
+		if (context != null) {
+			context.getLogger().log("Request path: " + (request.getPath() != null ? request.getPath() : "null"));
+			context.getLogger().log("HTTP method: " + (request.getHttpMethod() != null ? request.getHttpMethod() : "null"));
+		}
+
 		APIGatewayProxyResponseEvent response = new APIGatewayProxyResponseEvent();
 		Map<String, String> headers = new HashMap<>();
 		headers.put("Content-Type", "application/json");
 		response.setHeaders(headers);
 
+		if (request == null) {
+			response.setStatusCode(500);
+			response.setBody("{\"statusCode\": 500, \"message\": \"Internal server error: null request\"}");
+			return response;
+		}
+
 		String path = request.getPath();
 		String httpMethod = request.getHttpMethod();
 
-		if ("/hello".equals(path) && "GET".equalsIgnoreCase(httpMethod)) {
+
+		if (path != null && path.startsWith("/hello") && "GET".equalsIgnoreCase(httpMethod)) {
 			response.setStatusCode(200);
 			response.setBody("{\"statusCode\": 200, \"message\": \"Hello from Lambda\"}");
-		} else {
+		}
+
+		else if (path != null && path.startsWith("/cmtr-") && "GET".equalsIgnoreCase(httpMethod)) {
 			response.setStatusCode(400);
-			String errorMessage = String.format(
+			response.setBody(String.format(
 					"{\"statusCode\": 400, \"message\": \"Bad request syntax or unsupported method. Request path: %s. HTTP method: %s\"}",
 					path, httpMethod
-			);
-			response.setBody(errorMessage);
+			));
+		}
+
+		else {
+			response.setStatusCode(400);
+			response.setBody(String.format(
+					"{\"statusCode\": 400, \"message\": \"Bad request syntax or unsupported method. Request path: %s. HTTP method: %s\"}",
+					path != null ? path : "null",
+					httpMethod != null ? httpMethod : "null"
+			));
 		}
 
 		return response;
