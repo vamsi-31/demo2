@@ -37,9 +37,6 @@ public class HelloWorld implements RequestHandler<Map<String, Object>, Map<Strin
 		String path = (String) http.get("path");
 		String httpMethod = (String) http.get("method");
 
-		System.out.println("Path: " + path);
-		System.out.println("HTTP Method: " + httpMethod);
-
 		Map<String, Object> response = new HashMap<>();
 
 		// Check if the request is for /hello
