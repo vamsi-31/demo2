@@ -24,58 +24,39 @@ import java.util.Map;
 		authType = AuthType.NONE,
 		invokeMode = InvokeMode.BUFFERED
 )
-public class HelloWorld implements RequestHandler<APIGatewayProxyRequestEvent, APIGatewayProxyResponseEvent> {
+public class HelloWorld implements RequestHandler<Map<String, Object>, Map<String, Object>> {
 
 	@Override
-	public APIGatewayProxyResponseEvent handleRequest(APIGatewayProxyRequestEvent request, Context context) {
-		APIGatewayProxyResponseEvent response = new APIGatewayProxyResponseEvent();
-		Map<String, String> headers = new HashMap<>();
-		headers.put("Content-Type", "application/json");
-		response.setHeaders(headers);
+	public Map<String, Object> handleRequest(Map<String, Object> request, Context context) {
 
-		// Get the path and method from the request
-		String path = request.getPath();
-		String httpMethod = request.getHttpMethod();
+		// Extract request details from the payload
+		Map<String, Object> requestContext = (Map<String, Object>) request.get("requestContext");
+		Map<String, Object> http = (Map<String, Object>) requestContext.get("http");
 
-		// Check if the request is for /hello with GET method
-		if ("/hello".equals(path) && "GET".equals(httpMethod)) {
-			Map<String, Object> successBody = new HashMap<>();
-			successBody.put("statusCode", 200);
-			successBody.put("message", "Hello from Lambda");
+		// Get the path and method
+		String path = (String) http.get("path");
+		String httpMethod = (String) http.get("method");
 
-			response.setStatusCode(200);
-			response.setBody(convertMapToJson(successBody));
-			return response;
+		System.out.println("Path: " + path);
+		System.out.println("HTTP Method: " + httpMethod);
+
+		Map<String, Object> response = new HashMap<>();
+
+		// Check if the request is for /hello
+		if ("/hello".equals(path)) {
+			response.put("statusCode", 200);
+			response.put("body", "{" +
+					"\"statusCode\": 200," +
+					"\"message\": \"Hello from Lambda\"" +
+					"}");
+		} else {
+			response.put("statusCode", 400);
+			response.put("body", "{" +
+					"\"statusCode\": 400," +
+					"\"message\": \"Bad request syntax or unsupported method. Request path: " + path + ". HTTP method: " + httpMethod + "\"" +
+					"}");
 		}
 
-		// Handle all other requests as bad requests
-		Map<String, Object> errorBody = new HashMap<>();
-		errorBody.put("statusCode", 400);
-		errorBody.put("message", String.format(
-				"Bad request syntax or unsupported method. Request path: %s. HTTP method: %s",
-				path, httpMethod));
-
-		response.setStatusCode(400);
-		response.setBody(convertMapToJson(errorBody));
 		return response;
-	}
-
-	private String convertMapToJson(Map<String, Object> map) {
-		StringBuilder json = new StringBuilder("{");
-		boolean first = true;
-		for (Map.Entry<String, Object> entry : map.entrySet()) {
-			if (!first) {
-				json.append(",");
-			}
-			json.append("\"").append(entry.getKey()).append("\":");
-			if (entry.getValue() instanceof String) {
-				json.append("\"").append(entry.getValue()).append("\"");
-			} else {
-				json.append(entry.getValue());
-			}
-			first = false;
-		}
-		json.append("}");
-		return json.toString();
 	}
 }
