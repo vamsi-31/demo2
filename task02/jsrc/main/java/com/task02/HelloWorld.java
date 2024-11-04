@@ -62,7 +62,7 @@ public class HelloWorld implements RequestHandler<APIGatewayProxyRequestEvent, A
 		}
 
 		// Check if this is the expected /hello endpoint with GET method
-		if (path.startsWith("/hello") && "GET".equalsIgnoreCase(httpMethod)) {
+		if ("/hello".equals(path) && "GET".equalsIgnoreCase(httpMethod)) {
 			return createResponse(200, headers, SUCCESS_RESPONSE);
 		}
 
