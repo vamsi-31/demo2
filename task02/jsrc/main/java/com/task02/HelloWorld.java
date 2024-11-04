@@ -32,43 +32,30 @@ public class HelloWorld implements RequestHandler<APIGatewayProxyRequestEvent, A
 
 	@Override
 	public APIGatewayProxyResponseEvent handleRequest(APIGatewayProxyRequestEvent request, Context context) {
-		// Initialize response headers
 		Map<String, String> headers = new HashMap<>();
 		headers.put("Content-Type", "application/json");
 
-		// Handle null request
 		if (request == null) {
-			return createResponse(400, headers,
-					String.format(ERROR_RESPONSE_TEMPLATE, "", ""));
+			return createResponse(400, headers, String.format(ERROR_RESPONSE_TEMPLATE, "", ""));
 		}
 
-		// Extract and validate path
 		String path = request.getPath();
 		if (path == null) {
 			path = "";
 		}
 
-		// Extract and validate HTTP method
 		String httpMethod = request.getHttpMethod();
 		if (httpMethod == null) {
 			httpMethod = "";
 		}
 
-		// Log request details
-		if (context != null) {
-			context.getLogger().log("Processing request");
-			context.getLogger().log("Path: " + path);
-			context.getLogger().log("Method: " + httpMethod);
-		}
-
-		// Check if this is the expected /hello endpoint with GET method
-		if ("/hello".equals(path) && "GET".equalsIgnoreCase(httpMethod)) {
+		// Handle /hello and subpaths like /hello/world
+		if (path.startsWith("/hello") && "GET".equalsIgnoreCase(httpMethod)) {
 			return createResponse(200, headers, SUCCESS_RESPONSE);
 		}
 
 		// For all other cases, return 400 Bad Request
-		return createResponse(400, headers,
-				String.format(ERROR_RESPONSE_TEMPLATE, path, httpMethod));
+		return createResponse(400, headers, String.format(ERROR_RESPONSE_TEMPLATE, path, httpMethod));
 	}
 
 	private APIGatewayProxyResponseEvent createResponse(int statusCode, Map<String, String> headers, String body) {
