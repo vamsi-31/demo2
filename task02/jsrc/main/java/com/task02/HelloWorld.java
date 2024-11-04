@@ -28,37 +28,54 @@ public class HelloWorld implements RequestHandler<APIGatewayProxyRequestEvent, A
 
 	@Override
 	public APIGatewayProxyResponseEvent handleRequest(APIGatewayProxyRequestEvent request, Context context) {
-		// Create common headers
+		APIGatewayProxyResponseEvent response = new APIGatewayProxyResponseEvent();
 		Map<String, String> headers = new HashMap<>();
 		headers.put("Content-Type", "application/json");
-		headers.put("Access-Control-Allow-Origin", "*");
+		response.setHeaders(headers);
 
+		// Get the path and method from the request
 		String path = request.getPath();
 		String httpMethod = request.getHttpMethod();
 
-		// Check if the request is for /hello endpoint with GET method
-		if ("/hello".equals(path) && "GET".equalsIgnoreCase(httpMethod)) {
-			// Return successful response for /hello GET request
-			String successBody = "{\"statusCode\": 200, \"message\": \"Hello from Lambda\"}";
-			return new APIGatewayProxyResponseEvent()
-					.withStatusCode(200)
-					.withHeaders(headers)
-					.withBody(successBody);
-		} else {
-			// Return 400 Bad Request for any other endpoint or method
-			String errorMessage = String.format(
-					"Bad request syntax or unsupported method. Request path: %s. HTTP method: %s",
-					path,
-					httpMethod
-			);
-			String errorBody = String.format(
-					"{\"statusCode\": 400, \"message\": \"%s\"}",
-					errorMessage
-			);
-			return new APIGatewayProxyResponseEvent()
-					.withStatusCode(400)
-					.withHeaders(headers)
-					.withBody(errorBody);
+		// Check if the request is for /hello with GET method
+		if ("/hello".equals(path) && "GET".equals(httpMethod)) {
+			Map<String, Object> successBody = new HashMap<>();
+			successBody.put("statusCode", 200);
+			successBody.put("message", "Hello from Lambda");
+
+			response.setStatusCode(200);
+			response.setBody(convertMapToJson(successBody));
+			return response;
 		}
+
+		// Handle all other requests as bad requests
+		Map<String, Object> errorBody = new HashMap<>();
+		errorBody.put("statusCode", 400);
+		errorBody.put("message", String.format(
+				"Bad request syntax or unsupported method. Request path: %s. HTTP method: %s",
+				path, httpMethod));
+
+		response.setStatusCode(400);
+		response.setBody(convertMapToJson(errorBody));
+		return response;
+	}
+
+	private String convertMapToJson(Map<String, Object> map) {
+		StringBuilder json = new StringBuilder("{");
+		boolean first = true;
+		for (Map.Entry<String, Object> entry : map.entrySet()) {
+			if (!first) {
+				json.append(",");
+			}
+			json.append("\"").append(entry.getKey()).append("\":");
+			if (entry.getValue() instanceof String) {
+				json.append("\"").append(entry.getValue()).append("\"");
+			} else {
+				json.append(entry.getValue());
+			}
+			first = false;
+		}
+		json.append("}");
+		return json.toString();
 	}
 }
